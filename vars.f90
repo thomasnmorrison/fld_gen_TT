@@ -29,7 +29,7 @@ contains
   ! Subroutine to allocate array for tensor field variables
   subroutine allocate_ar()
     allocate(fldtt(nfld,6,IRANGE))
-    allocate(spec_l(nfld,nfld,nkos), spec_r(nfld,nfld,nkos))
+    allocate(spec_l(nkos,nfld,nfld), spec_r(nkos,nfld,nfld))
   end subroutine allocate_ar
 
 end module vars

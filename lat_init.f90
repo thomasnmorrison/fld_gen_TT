@@ -61,9 +61,9 @@ contains
              pol_w = pol_l
              call tensor_rot(pol_w, (/ii,jj,kk/))
              ! random draw for L polarization
-             call zpotrf()  ! Choleski decomposition
+             call zpotrf('L',nfld,spec_interp,nfld,l)  ! Choleski decomposition
              grv(:) = get_grv_complex(nfld)
-             call ztrmv()  ! multiply grv and Choleski
+             call ztrmv('L','N','N', nfld, spec_interp, nfld, grv, 1)  ! multiply grv and Choleski
              fk_mat_tt(:,1,LATIND) = pol_w(1,1)*grv(:)
              fk_mat_tt(:,2,LATIND) = pol_w(1,2)*grv(:)
              fk_mat_tt(:,3,LATIND) = pol_w(1,3)*grv(:)
@@ -76,9 +76,9 @@ contains
              pol_w = pol_r
              call tensor_rot(pol_w, (/ii,jj,kk/))
              ! random draw for R polarization
-             call zpotrf()  ! Choleski decomposition
+             call zpotrf('L',nfld,spec_interp,nfld,l)  ! Choleski decomposition
              grv(:) = get_grv_complex(nfld)
-             call ztrmv()  ! multiply grv and Choleski
+             call ztrmv('L','N','N', nfld, spec_interp, nfld, grv, 1)  ! multiply grv and Choleski
              fk_mat_tt(:,1,LATIND) = pol_w(1,1)*grv(:)
              fk_mat_tt(:,2,LATIND) = pol_w(1,2)*grv(:)
              fk_mat_tt(:,3,LATIND) = pol_w(1,3)*grv(:)

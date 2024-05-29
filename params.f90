@@ -3,7 +3,7 @@ module params
   integer, parameter :: dl = kind(1.d0)
   real(dl), parameter :: twopi = 6.2831853071795864769252867665590
 
-  integer, parameter :: nx=64, ny=64, nz=64
+  integer, parameter :: nx=16, ny=16, nz=16
   integer, parameter :: nnx=nx/2+1, nny=ny/2+1, nnz=nz/2+1
   integer, parameter :: nn = min(nnx,nny,nnz)
 

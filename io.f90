@@ -27,7 +27,7 @@ contains
 
   ! to do: name output file
   subroutine init_output()
-    open(unit=nfile_fldtt,file="fld_TT"//ident//".out")
+    open(unit=nfile_fldtt,file="fld_TT"//ident//".out",form="unformatted",access="stream")
   end subroutine init_output
 
   subroutine make_output()
