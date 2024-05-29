@@ -28,11 +28,12 @@ program fld_gen_tt
   call init_fft_ptrs()
   call allocate_ar()
   
-!  call init_input()
+  call init_input()
   call init_output()
 
   ! initialialize spec_l
-  spec_l(:,:,:) = 1._dl  ! adjust with norm
+  ! call read_spec(spec_l)
+  call init_spec_invar(spec_l, 1._dl)
   ! initialialize spec_r
   spec_r = spec_l
   
@@ -51,5 +52,15 @@ program fld_gen_tt
   
 contains
 
+  ! Subroutine to initialize a scale invariant spectrum
+  subroutine init_spec_invar(spec, amp)
+    real(dl) :: spec(:,:,:)
+    real(dl) :: amp
+    integer :: i
+
+    do i=1,nkos
+       spec_l(i,:,:) = amp/(i*dkos)**3
+    end do
+  end subroutine init_spec_invar
   
 end program fld_gen_tt

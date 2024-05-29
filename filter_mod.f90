@@ -35,7 +35,7 @@ contains
        do j=1,ny; if (j>nny) then; jj = ny+1-j; else; jj=j-1; endif 
           do i=1,nnx; ii=i-1
              rad = sqrt(dble(ii**2)+dble(jj**2)+dble(kk**2))
-             fk(IRANGE) = fk(IRANGE) * filt(dk*rad, kfilt)
+             fk(LATIND) = fk(LATIND) * filt(dk*rad, kfilt)
           end do
        end do
     end do

@@ -30,6 +30,16 @@ contains
     open(unit=nfile_fldtt,file="fld_TT"//ident//".out",form="unformatted",access="stream")
   end subroutine init_output
 
+  subroutine read_spec(spec)
+    real(dl) :: spec(:,:,:)
+    integer :: i
+    real(dl) :: rad
+
+    do i=1,nkos
+       read(nfile_spec, '(30(ES22.15, 2x))') rad, spec(i,:,:)
+    end do
+  end subroutine read_spec
+  
   subroutine make_output()
     write(nfile_fldtt) fldtt(:,:,IRANGE)
   end subroutine make_output
