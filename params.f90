@@ -11,11 +11,13 @@ module params
   real(dl), parameter :: len = 2._dl
   real(dl), parameter :: dx = len/dble(nx)
   real(dl), parameter :: dk = twopi / len
+  real(dl), parameter :: mpl = 1.e5
 
   integer, parameter :: nfld = NFIELD
 
   integer, parameter :: kos = 2**2            ! oversampling of k modes
   integer, parameter :: nkos = kos*nn         ! number of oversampled modes
-  real(dl), parameter :: norm = 1._dl         ! normalization factor for spectra
+  real(dl), parameter :: dkos = dk/dble(kos)  ! spacing of over sampled k modes
+  real(dl), parameter :: norm = sqrt(nvol/dx**3/mpl**2)          ! normalization factor for spectra
   
 end module params
