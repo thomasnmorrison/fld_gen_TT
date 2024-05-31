@@ -43,5 +43,16 @@ contains
   subroutine make_output()
     write(nfile_fldtt) fldtt(:,:,IRANGE)
   end subroutine make_output
+
+  subroutine summary_stat()
+    real(dl), dimension(6) :: var
+    integer :: i
+
+    do i=1,6
+       var(i) = sum((fldtt(1,i,IRANGE))**2)/nvol
+    end do
+
+    print*, var(:)
+  end subroutine summary_stat
   
 end module io

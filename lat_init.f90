@@ -13,17 +13,18 @@ module lat_init
   
   implicit none
 
-  complex, parameter, dimension(3,3) :: pol_plus = reshape((/(1.,0.),(0.,0.),(0.,0.), &
+  complex(C_DOUBLE_COMPLEX), parameter, dimension(3,3) :: pol_plus = reshape((/(1.,0.),(0.,0.),(0.,0.), &
                                                              (0.,0.), (-1.,0.), (0.,0.), &
                                                              (0.,0.), (0.,0.), (0.,0.)/), (/3,3/))
-  complex, parameter, dimension(3,3) :: pol_cross = reshape((/(0.,0.),(1.,0.),(0.,0.), &
+  complex(C_DOUBLE_COMPLEX), parameter, dimension(3,3) :: pol_cross = reshape((/(0.,0.),(1.,0.),(0.,0.), &
                                                               (1.,0.), (0.,0.), (0.,0.), &
                                                               (0.,0.), (0.,0.), (0.,0.)/), (/3,3/))
-  complex, parameter, dimension(3,3) :: pol_l = sqrt(0.5)*(pol_plus - (0.,1.)*pol_cross)
-  complex, parameter, dimension(3,3) :: pol_r = sqrt(0.5)*(pol_plus + (0.,1.)*pol_cross)
+  complex(C_DOUBLE_COMPLEX), parameter, dimension(3,3) :: pol_l = sqrt(0.5)*(pol_plus - (0.,1.)*pol_cross)
+  complex(C_DOUBLE_COMPLEX), parameter, dimension(3,3) :: pol_r = sqrt(0.5)*(pol_plus + (0.,1.)*pol_cross)
   
 contains
 
+  ! to do: it appears the polarization weighting is bugged (need to check tensor rotation)
   subroutine lat_init_tt(spec_l, spec_r, kos, kcut, seed, fldtt_init, f, fk, planb, norm)
     real(dl), intent(in) :: spec_l(:,:,:), spec_r(:,:,:)
     integer, intent(in) :: kos, kcut, seed
@@ -37,17 +38,17 @@ contains
     complex(C_DOUBLE_COMPLEX), allocatable :: fk_mat_tt(:,:,:,:,:)
     complex(C_DOUBLE_COMPLEX), dimension(nfld) :: grv
 
-    complex, dimension(3,3) :: pol_w  ! polarization weights
+    complex(C_DOUBLE_COMPLEX), dimension(3,3) :: pol_w ! polarization weights
     real(dl) :: rad
     integer :: i,j,k,ii,jj,kk,l
 
     call init_rng(seed)  ! initialize rng
     
     allocate(fk_mat_tt(nfld,6,nnx,ny,nz))  ! allocate a complex array to hold Fourier transforms
-    
+
     ! loop over wavenumber
-    do k=1,nz; if (k>nnz) then; kk = nz+1-k; else; kk=k-1; endif
-       do j=1,ny; if (j>nny) then; jj = ny+1-j; else; jj=j-1; endif 
+    do k=1,nz; if (k>nnz) then; kk = k-nz-1; else; kk=k-1; endif
+       do j=1,ny; if (j>nny) then; jj = j-ny-1; else; jj=j-1; endif 
           do i=1,nnx; ii=i-1
              rad = sqrt(dble(ii**2)+dble(jj**2)+dble(kk**2))  ! find wavenumber magnitude
              l = floor(rad*kos)  ! get wavenumber index for supplied spectra
@@ -58,8 +59,7 @@ contains
              ! interpolate spec_l
              spec_interp(:,:) = (1._dl,0._dl)*((1._dl + l - rad*kos)*spec_l(l,:,:) + (rad*kos - l)*spec_l(l+1,:,:))
              ! get L polarization index weighting
-             pol_w = pol_l
-             call tensor_rot(pol_w, (/ii,jj,kk/))
+             call get_pol_l(pol_w, (/ii,jj,kk/))
              ! random draw for L polarization
              call zpotrf('L',nfld,spec_interp,nfld,l)  ! Choleski decomposition
              grv(:) = get_grv_complex(nfld)
@@ -73,8 +73,7 @@ contains
              ! interpolate spec_r
              spec_interp(:,:) = (1._dl,0._dl)*((1._dl + l - rad*kos)*spec_r(l,:,:) + (rad*kos - l)*spec_r(l+1,:,:))
              ! get R polarization index weighting
-             pol_w = pol_r
-             call tensor_rot(pol_w, (/ii,jj,kk/))
+             call get_pol_r(pol_w, (/ii,jj,kk/))
              ! random draw for R polarization
              call zpotrf('L',nfld,spec_interp,nfld,l)  ! Choleski decomposition
              grv(:) = get_grv_complex(nfld)
@@ -88,7 +87,7 @@ contains
           end do
        end do
     end do
-    
+             
     ! set ii=0 components to be complex conjugate
     do k=1,nz; if (k.ne.1) then; kk = nz+2-k; else; kk=k; endif
        do j=2,nny; jj = ny+2-j
@@ -112,5 +111,67 @@ contains
     
     deallocate(fk_mat_tt)  ! de-allocate Fourier transform array
   end subroutine lat_init_tt
+
+  subroutine get_pol_plus(s, v)
+    complex(C_DOUBLE_COMPLEX) :: s(:,:)  ! components of symmetric spatial tensor
+    integer, intent(in) :: v(:)
+
+    complex(C_DOUBLE_COMPLEX) :: c1, c2, s1, s2  ! respectively $\cos(\theta)$, $\cos(\phi)$, $\sin(\theta)$, $\sin(\phi)$ with angles as in my notes
+
+    if (v(1) .eq. 0 .and. v(2) .eq. 0) then
+       c1 = (1._dl, 0._dl)
+       s1 = (0._dl, 0._dl)
+    else
+       c1 = dble(v(1))/sqrt(dble(v(1)**2 + v(2)**2)) * (1._dl, 0._dl)
+       s1 = dble(v(2))/sqrt(dble(v(1)**2 + v(2)**2)) * (1._dl, 0._dl)
+    end if
+    c2 = dble(v(3))/sqrt(dble(v(1)**2 + v(2)**2 + v(3)**2)) * (1._dl, 0._dl)
+    s2 = sqrt(1._dl - c2**2) * (1._dl, 0._dl)
+    s = reshape((/c2**2*c1**2 - s1**2, (c2**2 + (1._dl,0._dl))*c1*s1, -c1*c2*s2, &
+         (c2**2 + (1._dl,0._dl))*c1*s1, c2**2*s1**2 - c1**2, -c2*s1*s2, &
+         -c1*c2*s2, -c2*s1*s2, s2**2/),(/3,3/))
+  end subroutine get_pol_plus
+
+  subroutine get_pol_cross(s,v)
+    complex(C_DOUBLE_COMPLEX) :: s(:,:)  ! components of symmetric spatial tensor
+    integer, intent(in) :: v(:)
+
+    complex(C_DOUBLE_COMPLEX) :: c1, c2, s1, s2  ! respectively $\cos(\theta)$, $\cos(\phi)$, $\sin(\theta)$, $\sin(\phi)$ with angles as in my notes
+
+    if (v(1) .eq. 0 .and. v(2) .eq. 0) then
+       c1 = (1._dl, 0._dl)
+       s1 = (0._dl, 0._dl)
+    else
+       c1 = dble(v(1))/sqrt(dble(v(1)**2 + v(2)**2)) * (1._dl, 0._dl)
+       s1 = dble(v(2))/sqrt(dble(v(1)**2 + v(2)**2)) * (1._dl, 0._dl)
+    end if
+    c2 = dble(v(3))/sqrt(dble(v(1)**2 + v(2)**2 + v(3)**2)) * (1._dl, 0._dl)
+    s2 = sqrt(1._dl - c2**2) * (1._dl, 0._dl)
+    s = reshape((/-2._dl*c1*c2*s1, c2*(c1**2-s1**2), s1*s2, &
+         c2*(c1**2 - s1**2), 2._dl*c1*c2*s1, -c1*s2, &
+         s1*s2, -c1*s2, (0._dl,0._dl)/),(/3,3/))
+  end subroutine get_pol_cross
+
+  subroutine get_pol_l(s,v)
+    complex(C_DOUBLE_COMPLEX) :: s(:,:)  ! components of symmetric spatial tensor
+    integer, intent(in) :: v(:)
+
+    complex(C_DOUBLE_COMPLEX) :: temp(3,3)
+
+    call get_pol_plus(s,v)
+    call get_pol_cross(temp,v)
+    s = sqrt(0.5_dl)*(s - (0._dl,1._dl)*temp)
+  end subroutine get_pol_l
+
+  subroutine get_pol_r(s,v)
+    complex(C_DOUBLE_COMPLEX) :: s(:,:)  ! components of symmetric spatial tensor
+    integer, intent(in) :: v(:)
+
+    complex(C_DOUBLE_COMPLEX) :: temp(3,3)
+    
+    call get_pol_plus(s,v)
+    call get_pol_cross(temp,v)
+    s = sqrt(0.5_dl)*(s + (0._dl,1._dl)*temp)
+  end subroutine get_pol_r
   
 end module lat_init

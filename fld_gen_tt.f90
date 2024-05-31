@@ -14,6 +14,8 @@ program fld_gen_tt
   implicit none
 
   integer :: i,j
+  integer :: k, ii, jj, kk
+  complex(C_DOUBLE_COMPLEX), dimension(3,3) :: pol_w, pol_sum
   integer :: seed = 1  ! RNG seed
   real(dl), dimension(2) :: kfilt = dk*(/dble(nn-1)/3._dl, dble(nn-1)/2._dl/)
   
@@ -28,7 +30,7 @@ program fld_gen_tt
   call init_fft_ptrs()
   call allocate_ar()
   
-  call init_input()
+!  call init_input()
   call init_output()
 
   ! initialialize spec_l
@@ -37,7 +39,7 @@ program fld_gen_tt
   ! initialialize spec_r
   spec_r = spec_l
   
-  call lat_init_tt(spec_l, spec_r, kos, nkos-1, seed, fldtt, f1, fk1, planb, norm)
+  call lat_init_tt(spec_l, spec_r, kos, (nn-1)*kos, seed, fldtt, f1, fk1, planb, norm)
 
   do i=1,nfld
      do j=1,6
@@ -48,8 +50,27 @@ program fld_gen_tt
   end do
 
   ! Make output
+!  call summary_stat()
   call make_output()
-  
+
+!  pol_sum = (0._dl, 0._dl)
+!  do k=1,nz; if (k>nnz) then; kk = k-nz-1; else; kk=k-1; endif
+!     do j=1,ny; if (j>nny) then; jj = j-ny-1; else; jj=j-1; endif 
+!        do i=1,nx; if (i>nnx) then; ii = i-nx-1; else; ii=i-1; endif   
+!           if (sqrt(dble(ii**2 + jj**2 + kk**2)) .gt. nn/2._dl) then
+!              cycle
+!           end if
+!           if (ii .eq. 0 .and. jj .eq. 0 .and. kk .eq. 0) then
+!              cycle
+!           end if
+!           call get_pol_l(pol_w, (/ii,jj,kk/))
+!           pol_sum = pol_sum + pol_w * conjg(pol_w)
+!        end do
+!     end do
+!  end do
+
+!  print*, pol_sum/nvol
+
 contains
 
   ! Subroutine to initialize a scale invariant spectrum
@@ -59,7 +80,7 @@ contains
     integer :: i
 
     do i=1,nkos
-       spec_l(i,:,:) = amp/(i*dkos)**3
+       spec(i,:,:) = amp/(i*dkos)**3
     end do
   end subroutine init_spec_invar
   
